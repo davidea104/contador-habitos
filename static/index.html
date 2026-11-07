@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contador de Hábitos</title>
+  <style>
+    :root {
+      --fondo: #f5f6fa;
+      --tarjeta: #ffffff;
+      --texto: #1f2933;
+      --suave: #6b7280;
+      --primario: #4f46e5;
+      --exito: #16a34a;
+      --peligro: #dc2626;
+      --borde: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+    }
+    main { max-width: 560px; margin: 0 auto; padding: 32px 16px; }
+    h1 { margin: 0 0 4px; font-size: 1.8rem; }
+    .subtitulo { margin: 0 0 24px; color: var(--suave); }
+    form { display: flex; gap: 8px; margin-bottom: 12px; }
+    input {
+      flex: 1; padding: 10px 12px; font-size: 1rem;
+      border: 1px solid var(--borde); border-radius: 8px;
+    }
+    button {
+      padding: 10px 14px; font-size: .95rem; border: none; border-radius: 8px;
+      cursor: pointer; color: #fff; background: var(--primario);
+    }
+    button:disabled { opacity: .5; cursor: default; }
+    .btn-marcar { background: var(--exito); }
+    .btn-eliminar { background: transparent; color: var(--peligro); padding: 10px 8px; }
+    #mensaje { min-height: 1.4em; margin: 0 0 12px; color: var(--peligro); font-size: .9rem; }
+    ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    li {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--tarjeta); border: 1px solid var(--borde);
+      border-radius: 10px; padding: 12px 14px;
+    }
+    .info { flex: 1; min-width: 0; }
+    .nombre { font-weight: 600; overflow-wrap: anywhere; }
+    .detalle { color: var(--suave); font-size: .85rem; }
+    .vacio { color: var(--suave); text-align: center; padding: 24px 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🎯 Contador de Hábitos</h1>
+    <p class="subtitulo">Marca tus hábitos cada día y no rompas la racha.</p>
+
+    <form id="form-habito">
+      <input id="nombre-habito" name="nombre" type="text" maxlength="50"
+             placeholder="Ej: Tomar 2 litros de agua" autocomplete="off" required>
+      <button id="btn-agregar" type="submit">Agregar</button>
+    </form>
+    <p id="mensaje" role="alert"></p>
+
+    <ul id="lista-habitos"></ul>
+  </main>
+
+  <script>
+    const API = "/api/habitos";
+    const lista = document.getElementById("lista-habitos");
+    const form = document.getElementById("form-habito");
+    const input = document.getElementById("nombre-habito");
+    const mensaje = document.getElementById("mensaje");
+
+    async function pedir(url, opciones = {}) {
+      const resp = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...opciones,
+      });
+      if (!resp.ok) {
+        const error = await resp.json().catch(() => ({}));
+        throw new Error(typeof error.detail === "string" ? error.detail : "Ocurrió un error");
+      }
+      return resp.status === 204 ? null : resp.json();
+    }
+
+    function crearItem(habito) {
+      const li = document.createElement("li");
+      li.dataset.id = habito.id;
+
+      const info = document.createElement("div");
+      info.className = "info";
+      const nombre = document.createElement("div");
+      nombre.className = "nombre";
+      nombre.textContent = habito.nombre;
+      const detalle = document.createElement("div");
+      detalle.className = "detalle";
+      detalle.textContent = `🔥 Racha: ${habito.racha} · Total: ${habito.total_completados}`;
+      info.append(nombre, detalle);
+
+      const marcar = document.createElement("button");
+      marcar.className = "btn-marcar";
+      marcar.textContent = habito.completado_hoy ? "✓ Hecho hoy" : "Marcar hoy";
+      marcar.disabled = habito.completado_hoy;
+      marcar.addEventListener("click", () => accion(() =>
+        pedir(`${API}/${habito.id}/marcar`, { method: "POST" })));
+
+      const eliminar = document.createElement("button");
+      eliminar.className = "btn-eliminar";
+      eliminar.textContent = "Eliminar";
+      eliminar.setAttribute("aria-label", `Eliminar ${habito.nombre}`);
+      eliminar.addEventListener("click", () => accion(() =>
+        pedir(`${API}/${habito.id}`, { method: "DELETE" })));
+
+      li.append(info, marcar, eliminar);
+      return li;
+    }
+
+    async function cargar() {
+      const habitos = await pedir(API);
+      lista.replaceChildren();
+      if (habitos.length === 0) {
+        const vacio = document.createElement("li");
+        vacio.className = "vacio";
+        vacio.textContent = "Aún no tienes hábitos. ¡Agrega el primero!";
+        lista.append(vacio);
+        return;
+      }
+      habitos.forEach(h => lista.append(crearItem(h)));
+    }
+
+    async function accion(fn) {
+      mensaje.textContent = "";
+      try {
+        await fn();
+        await cargar();
+      } catch (e) {
+        mensaje.textContent = e.message;
+      }
+    }
+
+    form.addEventListener("submit", (evento) => {
+      evento.preventDefault();
+      accion(async () => {
+        await pedir(API, { method: "POST", body: JSON.stringify({ nombre: input.value }) });
+        input.value = "";
+      });
+    });
+
+    accion(async () => {});
+  </script>
+</body>
+</html>

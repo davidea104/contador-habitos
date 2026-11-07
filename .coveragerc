@@ -1,0 +1,10 @@
+[run]
+source = app
+branch = True
+
+[report]
+show_missing = True
+skip_empty = True
+
+[html]
+directory = htmlcov
