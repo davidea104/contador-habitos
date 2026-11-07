@@ -170,3 +170,19 @@ pytest tests/e2e --headed --slowmo 500   # para ver el navegador en acción
 ```bash
 pytest --cov --cov-report=term-missing
 ```
+
+---
+
+## 4. Integración continua (GitHub Actions)
+
+El pipeline `.github/workflows/ci.yml` se ejecuta en cada push a `main`, en cada pull request y de
+forma manual (`workflow_dispatch`). Tiene dos jobs:
+
+1. **Pruebas unitarias y cobertura:** corre `pytest tests/unit --cov`, publica la tabla de cobertura
+   en el resumen del run y guarda el reporte HTML como *artifact* (`reporte-cobertura`).
+   El job **falla si la cobertura baja del 90 %** (`fail_under` en `.coveragerc`).
+2. **Prueba de aceptación (E2E):** solo corre si el job anterior pasó (`needs`). Instala Chromium
+   y ejecuta la prueba con Playwright. Si falla, guarda las trazas (`trazas-playwright`), que se
+   pueden abrir con `playwright show-trace`.
+
+Los resultados se ven en la pestaña **Actions** del repositorio en GitHub.

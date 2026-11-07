@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pruebas-unitarias:
+    name: Pruebas unitarias y cobertura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas unitarias con cobertura
+        run: >
+          pytest tests/unit
+          --cov --cov-report=term-missing --cov-report=html --cov-report=xml
+
+      - name: Publicar resumen de cobertura
+        if: always()
+        run: |
+          echo '## Cobertura de código' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          coverage report >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar reporte HTML de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-cobertura
+          path: htmlcov/
+
+  prueba-aceptacion:
+    name: Prueba de aceptación (E2E)
+    runs-on: ubuntu-latest
+    needs: pruebas-unitarias
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias y navegador
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Ejecutar prueba E2E con Playwright
+        run: pytest tests/e2e --tracing retain-on-failure
+
+      - name: Guardar trazas de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trazas-playwright
+          path: test-results/

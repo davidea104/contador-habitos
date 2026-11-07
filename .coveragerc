@@ -4,6 +4,8 @@ branch = True
 
 [report]
 show_missing = True
+# El pipeline de CI falla si la cobertura baja de este porcentaje
+fail_under = 90
 skip_empty = True
 
 [html]
