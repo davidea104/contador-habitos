@@ -41,6 +41,41 @@ jobs:
           name: reporte-cobertura
           path: htmlcov/
 
+  integracion-postgres:
+    name: Integración con PostgreSQL (opcional)
+    runs-on: ubuntu-latest
+    # La base de datos es opcional: si este job falla, el pipeline no se bloquea.
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: habitos
+          POSTGRES_PASSWORD: habitos
+          POSTGRES_DB: habitos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U habitos"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgresql://habitos:habitos@localhost:5432/habitos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas contra PostgreSQL
+        run: pytest tests/unit --cov --cov-report=term-missing --cov-fail-under=95
+
   prueba-aceptacion:
     name: Prueba de aceptación (E2E)
     runs-on: ubuntu-latest

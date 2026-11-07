@@ -1,0 +1,26 @@
+# Base de datos OPCIONAL para el contador de hábitos.
+#
+#   docker compose up -d
+#   export DATABASE_URL=postgresql://habitos:habitos@localhost:5433/habitos
+#   uvicorn app.main:app --reload
+#
+# Sin este contenedor (o sin DATABASE_URL) la aplicación guarda en memoria.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: habitos
+      POSTGRES_PASSWORD: habitos
+      POSTGRES_DB: habitos
+    ports:
+      - "5433:5432"
+    volumes:
+      - datos-habitos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U habitos"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  datos-habitos:

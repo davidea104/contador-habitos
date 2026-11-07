@@ -48,12 +48,19 @@
     .nombre { font-weight: 600; overflow-wrap: anywhere; }
     .detalle { color: var(--suave); font-size: .85rem; }
     .vacio { color: var(--suave); text-align: center; padding: 24px 0; }
+    .almacenamiento {
+      display: inline-block; margin: 0 0 20px; padding: 4px 10px; border-radius: 999px;
+      font-size: .8rem; background: #e5e7eb; color: var(--suave);
+    }
+    .almacenamiento.postgres { background: #dcfce7; color: #166534; }
+    .almacenamiento.memoria { background: #fef3c7; color: #92400e; }
   </style>
 </head>
 <body>
   <main>
     <h1>🎯 Contador de Hábitos</h1>
     <p class="subtitulo">Marca tus hábitos cada día y no rompas la racha.</p>
+    <span id="almacenamiento" class="almacenamiento">Comprobando almacenamiento…</span>
 
     <form id="form-habito">
       <input id="nombre-habito" name="nombre" type="text" maxlength="50"
@@ -146,6 +153,16 @@
         input.value = "";
       });
     });
+
+    const ETIQUETAS = {
+      postgres: "🗄️ Guardando en PostgreSQL",
+      memoria: "⚠️ Sin base de datos: guardando en memoria",
+    };
+    pedir("/api/estado").then(({ almacenamiento }) => {
+      const insignia = document.getElementById("almacenamiento");
+      insignia.textContent = ETIQUETAS[almacenamiento] || almacenamiento;
+      insignia.classList.add(almacenamiento);
+    }).catch(() => {});
 
     accion(async () => {});
   </script>

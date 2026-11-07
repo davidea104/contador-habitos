@@ -6,8 +6,13 @@ Endpoints:
     POST   /api/habitos              -> agregar_habito
     POST   /api/habitos/{id}/marcar  -> marcar_habito (completado hoy)
     DELETE /api/habitos/{id}         -> eliminar_habito
+    GET    /api/estado               -> almacenamiento en uso (postgres | memoria)
+
+Si la variable de entorno DATABASE_URL apunta a un PostgreSQL disponible, los datos
+se guardan ahí; si no, la aplicación arranca igual y guarda en memoria.
 """
 
+import logging
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -20,12 +25,15 @@ from app.habitos import (
     HabitoNoEncontrado,
     HabitoYaMarcado,
 )
+from app.repositorios import crear_repositorio
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(message)s")
 
 RUTA_INDEX = Path(__file__).resolve().parent.parent / "static" / "index.html"
 
 app = FastAPI(title="Contador de Hábitos")
 
-_contador = ContadorHabitos()
+_contador = ContadorHabitos(repositorio=crear_repositorio())
 
 
 def get_contador() -> ContadorHabitos:
@@ -48,6 +56,11 @@ class HabitoRespuesta(BaseModel):
 @app.get("/", include_in_schema=False)
 def index() -> FileResponse:
     return FileResponse(RUTA_INDEX)
+
+
+@app.get("/api/estado")
+def estado(contador: ContadorHabitos = Depends(get_contador)) -> dict:
+    return {"almacenamiento": contador.almacenamiento}
 
 
 @app.get("/api/habitos", response_model=list[HabitoRespuesta])

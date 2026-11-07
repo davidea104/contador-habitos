@@ -36,6 +36,12 @@ def test_get_contador_devuelve_la_instancia_global():
     assert get_contador() is get_contador()
 
 
+def test_estado_informa_el_almacenamiento_en_uso(cliente):
+    respuesta = cliente.get("/api/estado")
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"almacenamiento": "memoria"}
+
+
 # ---------------------------------------------------------------- GET /api/habitos
 
 def test_listar_habitos_vacio(cliente):

@@ -1,6 +1,7 @@
 # Aplicación
 fastapi==0.162.2
 uvicorn[standard]==0.54.0
+psycopg[binary]==3.3.8   # driver de PostgreSQL (la base de datos es opcional)
 
 # Pruebas
 pytest==9.2.0
